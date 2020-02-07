@@ -1,3 +1,4 @@
+'use strict'
 var XLSX = require('xlsx');
 var fs = require('fs');
 var path = require('path');
@@ -6,7 +7,8 @@ console.log("Xy导表脚本 XyExcelExporter");
 console.log("作者: willz[qq3243309346]");
 
 var keys = {};
-var values = [];
+//var values = [];
+var currentSheet = null;
 
 function isJson(obj) {
 	var isJson = typeof(obj) == "object" && Object.prototype.toString.call(obj).toLowerCase() == "[object object]" && !obj.length;
@@ -26,17 +28,24 @@ function insertKey(list, line) {
 	}
 }
 
-function handleValues(obj, prefix) {
+
+function getCell(sheet, row, col) {
+	var ref = XLSX.utils.encode_cell({c:col,r:row});
+	var cell = sheet[ref];
+	return (cell ? cell.v : undefined);
+}
+
+
+function handleValues(obj, numAttr, prefix) {
 	var str = '';
 	for (var key in obj) {
 		str += prefix + '[' + key + '] = {\n';
         var val = obj[key];
 		if(isJson(val)) {
-			str += handleValues(val, prefix + '\t');
+			str += handleValues(val, numAttr, prefix + '\t');
 		} else {
-			var lo = values[val];
-			for (var ik in lo) {
-				str += '\t' + prefix + ik + ' = ' + lo[ik] + '\n';
+			for(var ai = 0; ai < numAttr; ai++) {
+				str += '\t' + prefix + getCell(currentSheet, 6, 1 + ai) + ' = ' + getCell(currentSheet, 7 + val, 1 + ai) + ',\n';
 			}
 		}
 		str += prefix + '},\n';
@@ -45,26 +54,19 @@ function handleValues(obj, prefix) {
 }
 
 
-
-function getCell(sheet, row, col) {
-	var ref = XLSX.utils.encode_cell({c:col,r:row});
-	var cell = sheet[ref];
-	return (cell ? cell.v : undefined);
+function mkdirs(dirname, callback) {
+    if(fs.existsSync(dirname)) { 
+		if(callback != undefined)
+			callback();
+	} else {   
+		//console.log(path.dirname(dirname));  
+		mkdirs(path.dirname(dirname), function() {  
+			fs.mkdirSync(dirname);  
+		});  
+	}    
 }
 
-function mkdirs(dirname, callback) {  
-    fs.exists(dirname, function (exists) {  
-        if (exists) {  
-            callback();  
-        } else {  
-            //console.log(path.dirname(dirname));  
-            mkdirs(path.dirname(dirname), function () {  
-                fs.mkdir(dirname, callback);  
-            });  
-        }  
-    });  
-}
-
+var countExport = 0;
 function handleFile(filePath){
 	var workbook = XLSX.readFile(filePath);
 	//console.log(workbook);
@@ -77,7 +79,7 @@ function handleFile(filePath){
 	
 		var exportType = getCell(sheet, 0, 1);
 		if(exportType == 'base') {
-			var exportFile = 'out\\' + getCell(sheet, 1, 1);
+			var exportFile = 'out/' + getCell(sheet, 1, 1);
 			console.log("exporting sheet '" + sname +
 			"' with type " + exportType+
 			" to '" + exportFile + "'"
@@ -86,7 +88,7 @@ function handleFile(filePath){
 			var fileTail = getCell(sheet, 1, 4);
 			var numKeys = getCell(sheet, 2, 1);
 			//console.log(exportFile, fileHead, fileTail, numKeys);
-			mkdirs(path.dirname(exportFile), function(){});
+			mkdirs(path.dirname(exportFile));
 			var outLua = fileHead + '\n';
 			
 			var lines = 0;
@@ -96,9 +98,10 @@ function handleFile(filePath){
 				lines++;
 			}
 			//console.log("line:" + lines);
-			if(lines == 0)
-				continue;
+			//if(lines == 0)
+			//	continue;
 			
+			keys = null;
 			keys = {};
 			for(var li = 0; li < lines; li++) {
 				var list = [];
@@ -117,6 +120,7 @@ function handleFile(filePath){
 			}
 			//console.log("attr:" + numAttr);
 			
+			/*values = null;
 			values = [];
 			for(var li = 0; li < lines; li++) {
 				values[li] = {};
@@ -125,57 +129,72 @@ function handleFile(filePath){
 					var attr = getCell(sheet, 6, 1 + ai);
 					obj[attr] = getCell(sheet, 7 + li, 1 + ai);
 				}
-			}
+			}*/
+			currentSheet = sheet;
 			//console.log(values);
 			
-			var str = handleValues(keys, '');
 			//console.log(str);
-			outLua += str;
+			outLua += handleValues(keys, numAttr, '');;
 			
 			outLua += fileTail;
-			fs.writeFile(exportFile, outLua, 'utf-8', function(error){
-				if(error){
-					console.log(error);
-					return false;
-				}
-				//console.log('写入成功');
-			});
+			fs.writeFileSync(exportFile, outLua, 'utf-8');
+			countExport++;
 		}
 		else if(exportType == 'tiny') {
-			console.log("exporting sheet '"+sname+"' with type " + exportType);
+			var exportFile = 'out/' + getCell(sheet, 1, 1);
+			console.log("exporting sheet '" + sname +
+			"' with type " + exportType+
+			" to '" + exportFile + "'"
+			);
 			
+			var fileHead = getCell(sheet, 0, 4);
+			var fileTail = getCell(sheet, 1, 4);
+			mkdirs(path.dirname(exportFile));
+			var outLua = fileHead + '\n';
+			
+			var lines = 0;
+			for(var lines = 0; true;) {
+				if(getCell(sheet, 5+ lines, 1) == undefined)
+					break;
+				lines++;
+			}
+			//console.log("line:" + lines);
+			//if(lines == 0)
+			//	continue;
+			
+			for(var li = 0; li < lines; li++) {
+				outLua += '\t' + getCell(sheet, 5 + li, 2)
+				+ ' = ' + getCell(sheet, 5 + li, 3) + ',\n';
+			}
+			
+			
+			outLua += fileTail;
+			fs.writeFileSync(exportFile, outLua, 'utf-8');
+			countExport++;
 		}
 	}
 }
 
 function handleDir(filePath){
     //根据文件路径读取文件，返回文件列表
-    fs.readdir(filePath,function(err,files){
-        if(err){
-            console.warn(err)
-        }else{
-            //遍历读取到的文件列表
-            files.forEach(function(filename){
-                //获取当前文件的绝对路径
-                var filedir = path.join(filePath,filename);
-                //根据文件路径获取文件信息，返回一个fs.Stats对象
-                fs.stat(filedir,function(eror,stats){
-                    if(eror){
-                        console.warn('获取文件stats失败');
-                    }else{
-                        var isFile = stats.isFile();//是文件
-                        var isDir = stats.isDirectory();//是文件夹
-                        if(isFile){
-                            //console.log(filedir);
-							handleFile(filedir);
-                        }
-                        if(isDir){
-                            handleDir(filedir);//递归，如果是文件夹，就继续遍历该文件夹下面的文件
-                        }
-                    }
-                })
-            });
-        }
-    });
+    var files = fs.readdirSync(filePath);
+	//遍历读取到的文件列表
+	files.forEach(function(filename){
+		//获取当前文件的绝对路径
+		var filedir = path.join(filePath,filename);
+		//根据文件路径获取文件信息，返回一个fs.Stats对象
+		var stats = fs.statSync(filedir);
+		var isFile = stats.isFile();//是文件
+		var isDir = stats.isDirectory();//是文件夹
+		if(isFile && filedir.endsWith(".xlsx")){
+			//console.log(filedir);
+			handleFile(filedir);
+		}
+		if(isDir){
+			handleDir(filedir);//递归，如果是文件夹，就继续遍历该文件夹下面的文件
+		}
+		
+	});
 }
 handleDir("excel");
+console.log("Total export: " + countExport);
