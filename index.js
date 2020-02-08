@@ -3,6 +3,17 @@ var XLSX = require('xlsx');
 var fs = require('fs');
 var path = require('path');
 
+var options = process.argv;
+if(options.length < 5)
+{
+	console.log("需要3个参数(side src out)");
+	process.exit();
+}
+//console.log(options[2], options[3], options[4]);
+var side = options[2];
+var srcDir = options[3];
+var outDir = options[4];
+
 console.log("Xy导表脚本 XyExcelExporter");
 console.log("作者: willz[qq3243309346]");
 
@@ -45,7 +56,9 @@ function handleValues(obj, numAttr, prefix) {
 			str += handleValues(val, numAttr, prefix + '\t');
 		} else {
 			for(var ai = 0; ai < numAttr; ai++) {
-				str += '\t' + prefix + getCell(currentSheet, 6, 1 + ai) + ' = ' + getCell(currentSheet, 7 + val, 1 + ai) + ',\n';
+				var value = getCell(currentSheet, 7 + val, 1 + ai);
+				if(value != undefined)
+					str += '\t' + prefix + getCell(currentSheet, 6, 1 + ai) + ' = ' + value + ',\n';
 			}
 		}
 		str += prefix + '},\n';
@@ -58,10 +71,11 @@ function mkdirs(dirname, callback) {
     if(fs.existsSync(dirname)) { 
 		if(callback != undefined)
 			callback();
-	} else {   
-		//console.log(path.dirname(dirname));  
-		mkdirs(path.dirname(dirname), function() {  
-			fs.mkdirSync(dirname);  
+	} else {
+		mkdirs(path.dirname(dirname), function() {
+			fs.mkdirSync(dirname);
+			if(callback != undefined)
+				callback();
 		});  
 	}    
 }
@@ -79,7 +93,7 @@ function handleFile(filePath){
 	
 		var exportType = getCell(sheet, 0, 1);
 		if(exportType == 'base') {
-			var exportFile = 'out/' + getCell(sheet, 1, 1);
+			var exportFile = outDir + '/' + getCell(sheet, 1, 1);
 			console.log("exporting sheet '" + sname +
 			"' with type " + exportType+
 			" to '" + exportFile + "'"
@@ -141,7 +155,7 @@ function handleFile(filePath){
 			countExport++;
 		}
 		else if(exportType == 'tiny') {
-			var exportFile = 'out/' + getCell(sheet, 1, 1);
+			var exportFile = outDir + '/' + getCell(sheet, 1, 1);
 			console.log("exporting sheet '" + sname +
 			"' with type " + exportType+
 			" to '" + exportFile + "'"
@@ -196,5 +210,5 @@ function handleDir(filePath){
 		
 	});
 }
-handleDir("excel");
+handleDir(srcDir);
 console.log("Total export: " + countExport);
