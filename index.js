@@ -11,6 +11,16 @@ if(options.length < 5)
 }
 //console.log(options[2], options[3], options[4]);
 var side = options[2];
+var sideChar = '';
+if(side == 'server')
+	sideChar = 's';
+else if(side == 'client')
+	sideChar = 'c';
+else {
+	console.log("side should be server/client");
+	process.exit();
+}
+
 var srcDir = options[3];
 var outDir = options[4];
 
@@ -19,6 +29,7 @@ console.log("作者: willz[qq3243309346]");
 
 var keys = {};
 //var values = [];
+var attrExport = [];
 var currentSheet = null;
 
 function isJson(obj) {
@@ -56,6 +67,8 @@ function handleValues(obj, numAttr, prefix) {
 			str += handleValues(val, numAttr, prefix + '\t');
 		} else {
 			for(var ai = 0; ai < numAttr; ai++) {
+				if(!attrExport[ai])
+					continue;
 				var value = getCell(currentSheet, 7 + val, 1 + ai);
 				if(value != undefined)
 					str += '\t' + prefix + getCell(currentSheet, 6, 1 + ai) + ' = ' + value + ',\n';
@@ -126,29 +139,30 @@ function handleFile(filePath){
 			}
 			//console.log(keys);
 			
+			attrExport = [];
 			var numAttr = 0;
+			var validAttr = 0;
 			for(var numAttr = 0; true;) {
 				if(getCell(sheet, 6, 1 + numAttr) == undefined)
 					break;
+				
+				var exportParam = getCell(sheet, 5, 1 + numAttr);
+				if(exportParam.includes(sideChar)) {
+					attrExport[numAttr] = true;
+					validAttr++;
+				}
+				else
+					attrExport[numAttr] = false;
+				
 				numAttr++;
 			}
+			//console.log(attrExport);
 			//console.log("attr:" + numAttr);
 			
-			/*values = null;
-			values = [];
-			for(var li = 0; li < lines; li++) {
-				values[li] = {};
-				var obj = values[li];
-				for(var ai = 0; ai < numAttr; ai++) {
-					var attr = getCell(sheet, 6, 1 + ai);
-					obj[attr] = getCell(sheet, 7 + li, 1 + ai);
-				}
-			}*/
 			currentSheet = sheet;
-			//console.log(values);
 			
-			//console.log(str);
-			outLua += handleValues(keys, numAttr, '');;
+			if(validAttr > 0)
+				outLua += handleValues(keys, numAttr, '');;
 			
 			outLua += fileTail;
 			fs.writeFileSync(exportFile, outLua, 'utf-8');
@@ -177,6 +191,9 @@ function handleFile(filePath){
 			//	continue;
 			
 			for(var li = 0; li < lines; li++) {
+				var exportParam = getCell(sheet, 5 + li, 1);
+				if(!exportParam.includes(sideChar))
+					continue;
 				outLua += '\t' + getCell(sheet, 5 + li, 2)
 				+ ' = ' + getCell(sheet, 5 + li, 3) + ',\n';
 			}
