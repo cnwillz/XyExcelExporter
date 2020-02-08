@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/cnwillz/XyExcelExporter#readme",
   "dependencies": {
+    "lua-json": "^1.0.0",
     "xlsx": "^0.15.5"
   }
 }
