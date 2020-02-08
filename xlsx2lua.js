@@ -50,11 +50,45 @@ function insertKey(list, line) {
 	}
 }
 
+/* 给String原型链对象添加方法trim */
+if (!String.prototype.trim) {
+  String.prototype.trim = function () {
+    return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
+  };
+}
 
 function getCell(sheet, row, col) {
 	var ref = XLSX.utils.encode_cell({c:col,r:row});
 	var cell = sheet[ref];
 	return (cell ? cell.v : undefined);
+}
+
+function insertStr(soure, start, newStr){   
+   return soure.slice(0, start) + newStr + soure.slice(start);
+}
+
+function encodeQuote(str) {
+	if(str[0] != '"' || str[str.length-1] != '"')
+		return str;
+	var i = 1;
+	var f;
+	while((f = str.indexOf('"', i)) != -1 && f < str.length - 1) {
+		str = insertStr(str, f, '\\');
+		//console.log(f, str);
+		i = f + 2;
+	}
+	return str;
+}
+
+function getCellContent(sheet, row, col) {
+	var cell = getCell(sheet, row, col);
+	if(cell == undefined)
+		return '""';
+	var str = ''+cell;
+	str = str.replace(/\n/g, ' ');
+	if(str.trim().length ==0)
+		return '""';
+	return str;
 }
 
 
@@ -69,7 +103,7 @@ function handleValues(obj, numAttr, prefix) {
 			for(var ai = 0; ai < numAttr; ai++) {
 				if(!attrExport[ai])
 					continue;
-				var value = getCell(currentSheet, 7 + val, 1 + ai);
+				var value = getCellContent(currentSheet, 7 + val, 1 + ai);
 				if(value != undefined)
 					str += '\t' + prefix + getCell(currentSheet, 6, 1 + ai) + ' = ' + value + ',\n';
 			}
@@ -194,8 +228,13 @@ function handleFile(filePath){
 				var exportParam = getCell(sheet, 5 + li, 1);
 				if(!exportParam.includes(sideChar))
 					continue;
-				outLua += '\t' + getCell(sheet, 5 + li, 2)
-				+ ' = ' + getCell(sheet, 5 + li, 3) + ',\n';
+				var attr = getCell(sheet, 5 + li, 2);
+				var value = getCellContent(sheet, 5 + li, 3);
+				value = encodeQuote(value);
+				if(value.startsWith('--#include'))
+					outLua += value + '\n';
+				else if(attr != undefined)
+					outLua += '\t' + attr + ' = ' + value + ',\n';
 			}
 			
 			
