@@ -63,6 +63,18 @@ function getCell(sheet, row, col) {
 	return (cell ? cell.v : undefined);
 }
 
+function getMaxRow(sheet) {
+	var range = XLSX.utils.decode_range(sheet['!ref']);
+	//console.log(range);
+	return range.e.r;
+}
+
+function getMaxCol(sheet) {
+	var range = XLSX.utils.decode_range(sheet['!ref']);
+	//console.log(range);
+	return range.e.c;
+}
+
 function insertStr(soure, start, newStr){   
    return soure.slice(0, start) + newStr + soure.slice(start);
 }
@@ -168,43 +180,53 @@ function handleFile(filePath){
 			mkdirs(path.dirname(exportFile));
 			var outLua = fileHead + '\n';
 			
-			var lines = 0;
-			for(var lines = 0; true;) {
-				if(getCell(sheet, 7+ lines, 1) == undefined)
-					break;
-				lines++;
+			
+			try {
+				var data = fs.readFileSync(exportFile, 'utf-8');
+				var contents = data.split("\n");
+				contents[contents.length-1] = '';
+				outLua = contents.join("\n");
+			} catch (err) {
+				// 出错了
 			}
+			
+			var lines = getMaxRow(sheet) - 6;
 			//console.log("line:" + lines);
 			//if(lines == 0)
 			//	continue;
 			
 			keys = null;
 			keys = {};
+			var isBreak = false;
 			for(var li = 0; li < lines; li++) {
 				var list = [];
 				for(var ki = 0; ki < numKeys; ki++) {
-					list[ki] = getCell(sheet, 7 + li, 1 + ki);
+					var str = getCell(sheet, 7 + li, 1 + ki);
+					str = str==undefined?'':''+str;
+					if(str.trim().length ==0) {
+						isBreak = true;
+						break;
+					}
+					list[ki] = str;
 				}
-				insertKey(list, li);
+				if(!isBreak)
+					insertKey(list, li);
+				else
+					isBreak = false;
 			}
 			//console.log(keys);
 			
 			attrExport = [];
-			var numAttr = 0;
+			var numAttr = getMaxCol(sheet);
 			var validAttr = 0;
-			for(var numAttr = 0; true;) {
-				if(getCell(sheet, 6, 1 + numAttr) == undefined)
-					break;
-				
-				var exportParam = getCell(sheet, 5, 1 + numAttr);
-				if(exportParam.includes(sideChar)) {
-					attrExport[numAttr] = true;
+			for(var ai = 0; ai < numAttr; ai++) {	
+				var exportParam = getCell(sheet, 5, 1 + ai);
+				if(exportParam != undefined && exportParam.includes(sideChar)) {
+					attrExport[ai] = true;
 					validAttr++;
 				}
 				else
-					attrExport[numAttr] = false;
-				
-				numAttr++;
+					attrExport[ai] = false;
 			}
 			//console.log(attrExport);
 			//console.log("attr:" + numAttr);
@@ -283,6 +305,7 @@ function handleDir(filePath){
 		
 	});
 }
+
 removeDir(outDir);
 handleDir(srcDir);
 console.log("Total export: " + countExport);
