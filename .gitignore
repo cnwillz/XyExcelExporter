@@ -105,3 +105,4 @@ dist
 ~*.xlsx
 out*/
 excel/
+config.pack

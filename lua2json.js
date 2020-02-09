@@ -47,7 +47,7 @@ function shouldBeArray(obj) {
 		count ++;
 	}
 	//console.log(count, max, count==(firstNumber==0?1+max:max));
-	return count==(firstNumber==0?1+max:max);
+	return count>1&&count==(firstNumber==0?1+max:max);
 }
 
 function runCompact(obj) {
