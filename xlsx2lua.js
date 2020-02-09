@@ -103,6 +103,17 @@ function getCellContent(sheet, row, col) {
 	return str;
 }
 
+function getCellNonEmpty(sheet, row, col) {
+	var cell = getCell(sheet, row, col);
+	if(cell == undefined)
+		return '';
+	var str = ''+cell;
+	str = str.replace(/\n/g, ' ');
+	if(str.trim().length ==0)
+		return '';
+	return str;
+}
+
 
 function handleValues(obj, numAttr, prefix) {
 	var str = '';
@@ -168,15 +179,27 @@ function handleFile(filePath){
 		var exportType = getCell(sheet, 0, 1);
 		if(exportType == 'base') {
 			var exportFile = outDir + '/' + getCell(sheet, 1, 1);
-			exportFile = exportFile.toLowerCase();
-			console.log("exporting sheet '" + sname +
-			"' with type " + exportType+
-			" to '" + exportFile + "'"
-			);
+			
 			var fileHead = getCell(sheet, 0, 4);
 			var fileTail = getCell(sheet, 1, 4);
 			var numKeys = getCell(sheet, 2, 1);
 			//console.log(exportFile, fileHead, fileTail, numKeys);
+			
+			if(sideChar=='c') {
+				var clientHead = getCellNonEmpty(sheet, 0, 6);
+				if(clientHead != '')
+					fileHead = clientHead;
+				
+				var clientFile = getCellNonEmpty(sheet, 1, 6);
+				if(clientFile != '')
+					exportFile = outDir + '/' + clientFile;
+			}
+			console.log("exporting sheet '" + sname +
+			"' with type " + exportType+
+			" to '" + exportFile + "'"
+			);
+			
+			exportFile = exportFile.toLowerCase();
 			mkdirs(path.dirname(exportFile));
 			var outLua = fileHead + '\n';
 			
