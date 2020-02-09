@@ -13,6 +13,45 @@ if(options.length < 4)
 var srcDir = options[2];
 var outDir = options[3];
 var lang = {};
+var compactMap = {
+	'MonstersConfig': 'MonstersConfig_keys',
+	'Monsters2sConfig': 'MonstersConfig_keys2',
+	'InstanceConfig': 'InstanceConfig_keys',
+	'EffectsConfig': 'EffectsConfig_keys',
+	'SkillsConfig': 'SkillsConfig_keys',
+	'SkillsExeConfig': 'SkillsExeConfig_keys'
+};
+
+function runCompact(obj) {
+	var objName = Object.keys(obj)[0];
+	if(compactMap.hasOwnProperty(objName)) {
+		var tagId = 0;
+		var objKeysName = compactMap[objName];
+		var tagMap = {};
+		var objMap = {};
+		
+		var oldMap = obj[objName];
+		for (var key in oldMap) {
+			objMap[key] = [];
+			for(var tagKey in oldMap[key]) {
+				var id = tagId;
+				if(tagMap.hasOwnProperty(tagKey)) {
+					id = tagMap[tagKey];
+				} else {
+					tagMap[tagKey] = tagId;
+					tagId++;
+				}
+				objMap[key][id] = oldMap[key][tagKey];
+			}
+		}
+		
+		var newObj = {};
+		newObj[objKeysName] = tagMap;
+		newObj[objName] = objMap;
+		return newObj;
+	} else
+		return obj;
+}
 
 function mkdirs(dirname, callback) {
     if(fs.existsSync(dirname)) { 
@@ -57,11 +96,14 @@ function handleFile(fileDir) {
 	} );
 	//return;
 	//console.log(content);
-	//var exportFile1 = 'out_test/' + countExport + '.lua';
-	//mkdirs(path.dirname(exportFile1));
-	//fs.writeFileSync(exportFile1, content, 'utf-8');
+	var exportFile1 = 'out_test/' + countExport + '.lua';
+	mkdirs(path.dirname(exportFile1));
+	fs.writeFileSync(exportFile1, content, 'utf-8');
 	
-	var outStr = JSON.stringify(lua2json.parse(`return {${content}}`));
+	var obj = lua2json.parse(`return {${content}}`);
+	obj = runCompact(obj);
+	
+	var outStr = JSON.stringify(obj);
 	countExport++;
 	var exportFile = outDir + '/' + countExport + '.json';
 	console.log(fileDir, '->', exportFile);
@@ -108,6 +150,22 @@ function handleDir(filePath, callback, except){
 	});
 }
 
+function removeDir(p){
+    let statObj = fs.statSync(p); // fs.statSync同步读取文件状态，判断是文件目录还是文件。
+    if(statObj.isDirectory()){ //如果是目录
+        let dirs = fs.readdirSync(p) //fs.readdirSync()同步的读取目标下的文件 返回一个不包括 '.' 和 '..' 的文件名的数组['b','a']
+        dirs = dirs.map(dir => path.join(p, dir))  //拼上完整的路径
+        for (let i = 0; i < dirs.length; i++) {
+            // 深度 先将儿子移除掉 再删除掉自己
+            removeDir(dirs[i]);
+        }
+        fs.rmdirSync(p); //删除目录
+    }else{
+        fs.unlinkSync(p); //删除文件
+    }
+}
+
+removeDir(outDir);
 
 console.log('importing language');
 handleDir(`${srcDir}/language/lang`, handleLanguage);
