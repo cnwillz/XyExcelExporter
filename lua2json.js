@@ -22,6 +22,28 @@ var compactMap = {
 	'SkillsExeConfig': 'SkillsExeConfig_keys'
 };
 
+function shouldBeArray(obj) {
+	var cv = Object.values(obj);
+	if(cv.length == 0)
+		return false;
+	var cv2 = Object.values(cv[0]);
+	if(cv2.length == 0)
+		return false;
+	var innerObj = Object.values(cv2[0])
+	if(innerObj == undefined)
+		return false;
+	var max = -1;
+	var count = 0;
+	for (var key in innerObj) {
+		var id = parseInt(key);
+		if(id > max)
+			max = id;
+		count ++;
+	}
+	//console.log(count, max, count==1+max);
+	return count==1+max;
+}
+
 function runCompact(obj) {
 	var objName = Object.keys(obj)[0];
 	if(compactMap.hasOwnProperty(objName)) {
@@ -47,6 +69,21 @@ function runCompact(obj) {
 		
 		var newObj = {};
 		newObj[objKeysName] = tagMap;
+		newObj[objName] = objMap;
+		return newObj;
+	}
+	else if(shouldBeArray(obj)) {
+		var oldMap = obj[objName];
+		var objMap = {};
+		
+		for (var key in oldMap) {
+			objMap[key] = [];
+			for(var id in oldMap[key]) {
+				objMap[key][id - 1] = oldMap[key][id];
+			}
+		}
+		
+		var newObj = {};
 		newObj[objName] = objMap;
 		return newObj;
 	} else
@@ -151,6 +188,8 @@ function handleDir(filePath, callback, except){
 }
 
 function removeDir(p){
+	if(!fs.existsSync(p))
+		return;
     let statObj = fs.statSync(p); // fs.statSync同步读取文件状态，判断是文件目录还是文件。
     if(statObj.isDirectory()){ //如果是目录
         let dirs = fs.readdirSync(p) //fs.readdirSync()同步的读取目标下的文件 返回一个不包括 '.' 和 '..' 的文件名的数组['b','a']

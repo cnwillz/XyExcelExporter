@@ -151,6 +151,8 @@ function mkdirs(dirname, callback) {
 }
 
 function removeDir(p){
+	if(!fs.existsSync(p))
+		return;
     let statObj = fs.statSync(p); // fs.statSync同步读取文件状态，判断是文件目录还是文件。
     if(statObj.isDirectory()){ //如果是目录
         let dirs = fs.readdirSync(p) //fs.readdirSync()同步的读取目标下的文件 返回一个不包括 '.' 和 '..' 的文件名的数组['b','a']
