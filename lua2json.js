@@ -29,19 +29,25 @@ function shouldBeArray(obj) {
 	var cv2 = Object.values(cv[0]);
 	if(cv2.length == 0)
 		return false;
-	var innerObj = Object.values(cv2[0])
+	var innerObj = cv2[0];
 	if(innerObj == undefined)
 		return false;
-	var max = -1;
+	var max = -2;
 	var count = 0;
+	var firstNumber = -999;
 	for (var key in innerObj) {
 		var id = parseInt(key);
+		//console.log(key, id);
+		if(isNaN(id))
+			return false;
+		if(firstNumber == -999)
+			firstNumber = id;
 		if(id > max)
 			max = id;
 		count ++;
 	}
-	//console.log(count, max, count==1+max);
-	return count==1+max;
+	//console.log(count, max, count==(firstNumber==0?1+max:max));
+	return count==(firstNumber==0?1+max:max);
 }
 
 function runCompact(obj) {
