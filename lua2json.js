@@ -139,9 +139,9 @@ function handleFile(fileDir) {
 	} );
 	//return;
 	//console.log(content);
-	var exportFile1 = 'out_test/' + countExport + '.lua';
-	mkdirs(path.dirname(exportFile1));
-	fs.writeFileSync(exportFile1, content, 'utf-8');
+	//var exportFile1 = 'out_test/' + countExport + '.lua';
+	//mkdirs(path.dirname(exportFile1));
+	//fs.writeFileSync(exportFile1, content, 'utf-8');
 	
 	var obj = lua2json.parse(`return {${content}}`);
 	obj = runCompact(obj);
