@@ -171,26 +171,31 @@ function handleLanguage(fileDir) {
 
 function handleDir(filePath, callback, except){
     //根据文件路径读取文件，返回文件列表
-    var files = fs.readdirSync(filePath);
-	//遍历读取到的文件列表
-	files.forEach(function(filename){
-		if(except != undefined && filename.includes(except))
-			return;
-		//获取当前文件的绝对路径
-		var filedir = path.join(filePath,filename);
-		//根据文件路径获取文件信息，返回一个fs.Stats对象
-		var stats = fs.statSync(filedir);
-		var isFile = stats.isFile();//是文件
-		var isDir = stats.isDirectory();//是文件夹
-		if(isFile){
-			//console.log(filedir);
-			callback(filedir);
-		}
-		if(isDir){
-			handleDir(filedir, callback, except);//递归，如果是文件夹，就继续遍历该文件夹下面的文件
-		}
-		
-	});
+	try {
+		var files = fs.readdirSync(filePath);
+		//遍历读取到的文件列表
+		files.forEach(function(filename){
+			if(except != undefined && filename.includes(except))
+				return;
+			//获取当前文件的绝对路径
+			var filedir = path.join(filePath,filename);
+			//根据文件路径获取文件信息，返回一个fs.Stats对象
+			var stats = fs.statSync(filedir);
+			var isFile = stats.isFile();//是文件
+			var isDir = stats.isDirectory();//是文件夹
+			if(isFile){
+				//console.log(filedir);
+				callback(filedir);
+			}
+			if(isDir){
+				handleDir(filedir, callback, except);//递归，如果是文件夹，就继续遍历该文件夹下面的文件
+			}
+			
+		});
+	} catch(e) {
+		//not found
+		console.warn(`Err occurs: ${e}`)
+	}
 }
 
 function removeDir(p){
@@ -212,9 +217,12 @@ function removeDir(p){
 
 removeDir(outDir);
 
-console.log('importing language');
-handleDir(`${srcDir}/language/lang`, handleLanguage);
-console.log('imported language item:', Object.keys(lang).length);
+var lang_dir = `${srcDir}/language/lang`;
+if(fs.existsSync(lang_dir)) {
+	console.log('importing language');
+	handleDir(lang_dir, handleLanguage);
+	console.log('imported language item:', Object.keys(lang).length);	
+}
 
 handleDir(srcDir, handleFile, 'language');
 
