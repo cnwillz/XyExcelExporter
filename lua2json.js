@@ -77,6 +77,7 @@ function runCompact(obj) {
 		newObj[objKeysName] = tagMap;
 		newObj[objName] = objMap;
 		return newObj;
+	/*/
 	}
 	else if(shouldBeArray(obj)) {
 		var oldMap = obj[objName];
@@ -92,6 +93,7 @@ function runCompact(obj) {
 		var newObj = {};
 		newObj[objName] = objMap;
 		return newObj;
+		//*/
 	} else
 		return obj;
 }
