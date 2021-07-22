@@ -23,6 +23,6 @@
   "dependencies": {
     "archiver": "^3.1.1",
     "lua-json": "^1.0.0",
-    "xlsx": "^0.15.5"
+    "xlsx": "^0.17.0"
   }
 }
